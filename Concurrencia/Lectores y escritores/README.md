@@ -20,6 +20,6 @@ El comportamiento de los threads debe ser el siguiente:
 * Los lectores estarán identificados por un número de dos cifras del 20 al 34.
 
 * Su ciclo es el siguiente: pasean durante un tiempo al azar entre 1 y 2 segundos,  se van a leer el libro y se están entre 0,5 y 1,5 segundos leyendo. Luego vuelven a empezar, salvo que el libro esté terminado (tenga ya 50 caracteres), en cuyo caso, terminarán, imprimiendo por pantalla un mensaje del tipo:
- * * Leído por 26: 0416895326710139584824737605132968519026734850279”.
+ * Leído por 26: 0416895326710139584824737605132968519026734850279”.
  
 Escribir las clases necesarias para crear el programa, de forma que durante su ejecución se pueda ver por pantalla qué lectores están leyendo el libro en cada momento, qué escritor está escribiendo y cuál es el contenido del libro. Se puede hacer mediante un JFrame con 3 campos de texto para la visualización de dichos datos. (Añadir dos botones para detener y reanudar los threads lectores y escritores, y así comprobar que el sistema funciona correctamente).
