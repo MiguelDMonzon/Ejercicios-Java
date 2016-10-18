@@ -63,7 +63,7 @@ substring(1, yytext().length-1)</code>.
 
 Una vez obtenido el nombre del uso del registro, se compara con todos los posibles usos y cuando se encuentre el adecuado se incrementará en 1 ese registro referenciado por la clase updClass.
 
-### Número de bits ### 
+### Número de bits 
 
 * < bitSize >: apertura de tamaño de bits
 * < /bitSize >: cierre de tamaño de bits
