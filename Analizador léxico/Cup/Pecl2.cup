@@ -1,0 +1,250 @@
+import Paquete.insClass;
+import Paquete.storeClass;
+import Paquete.descrClass;
+import java.io.*;
+import java.util.*;
+import java_cup.runtime.Symbol;
+
+parser code {:
+	public static void main (String argv[]) throws Exception
+	{
+		String nombreArchivo = argv[0];
+	  
+	  if(nombreArchivo.endsWith(".upd")){
+	  	File archivo = new File(nombreArchivo);
+	  	if (!archivo.exists()){
+	  		System.out.println("El fichero no existe, inserte otra ruta e intentelo de nuevo");
+	  		
+	  	}else{
+	  			FileReader fr = new FileReader(archivo);
+	  			UpdComp lex = new UpdComp(fr);
+				parser analizador;
+				analizador = new parser(lex);
+				analizador.parse();
+			}
+	 }else{
+		System.out.println("Error, el archivo debe de ser con extension .upd");
+		
+  	 }  
+	}
+
+	public void syntax_error(Symbol st){
+		if(st.value == null) report_error("Error sintactico, se espera algo en linea:"+st.left+", caracter:"+st.right, null);
+		else report_error("Error sintactico, valor-->"+st.value+", en linea:"+st.left+", caracter:"+st.right, null);
+	}
+
+:};
+
+//terminales entre partes
+terminal COMA, ABRECORCHETE, CIERRACORCHETE;
+
+// terminales de aperturas
+terminal APERTURAIDENT, APERTURADATE, APERTURANAME, APERTURAUSE, APERTURABITSIZE, APERTURAINSBITCODE, APERTURAUPD, APERTURADESCR, APERTURASTORAGE, 
+APERTURAREGISTER, APERTURAREGBITCODE, APERTURAGROUP, APERTURAREGISTERS, APERTURAINSNS, APERTURAINS, APERTURAOPCODE, APERTURAIN, APERTURAOUT, 
+APERTURABEHAV;
+
+//terminales de cierre
+terminal CIERREIDENT, CIERREDATE, CIERRENAME, CIERREUSE, CIERREBITSIZE, CIERREINSBITCODE, CIERREUPD, CIERREDESCR, CIERRESTORAGE, CIERREREGISTER,  
+CIERREREGBITCODE, CIERREGROUP, CIERREREGISTERS, CIERREINSNS, CIERREINS, CIERREOPCODE, CIERREIN, CIERREOUT, CIERREBEHAV;
+
+//terminales con tipos
+terminal Integer BITSIZE;
+terminal String IDENT, DATE, NAME, USE, INSBITCODE, REGBITCODE, CODIGOOPERACION, BEHAV, NOMBREOPERANDOIN, NOMBREOPERANDOOUT, DATAMEM;
+
+
+
+//no terminales: sobre todo para expresiones
+
+//General
+non terminal upd;
+
+//Descripcion: <descr> <ident>..</ident><date>..</date> </descr>
+non terminal descr;
+non terminal String ident;
+non terminal String date;
+
+//Almacenamiento (1ª posibilidad): <storage> <register>..</register><name>..</name><use>..</use><bitSize>..</bitSize><regbitcode>..</regbitcode> </storage>
+//Almacenamiento (2ª posibilidad): <group> <registers>..</registers> </group>
+non terminal storage;
+non terminal storeClass register;
+non terminal registerList;
+non terminal String name;
+non terminal Stack nameList;
+non terminal Stack use;
+non terminal Stack useList;
+non terminal Integer bitSize;
+non terminal String regBitCode;
+non terminal storeClass group;
+non terminal groupList;
+non terminal Stack registers;
+
+//Definicion Ensamblador: <insns> <ins> <opcode>..</opcode><in>..</in><out>..</out><insBitCode>..</insBitCode><behav>..</behav></ins> </insns>
+non terminal insns;
+non terminal insClass ins;
+non terminal insList;
+non terminal String opcode;
+non terminal in;
+non terminal inList;
+non terminal operando;
+non terminal operandoList;
+non terminal out;
+non terminal Stack insBitCode;
+non terminal Stack insBitCodeList;
+non terminal Stack behav;
+non terminal Stack behavList;
+
+
+
+// gramática
+
+/*GENERAL*/
+upd ::= APERTURAUPD descr storage insns CIERREUPD{::};
+
+/*DESCRIPCION*/
+descr ::= APERTURADESCR ident:e1 date:e2 CIERREDESCR {:
+				descrClass dc = new descrClass(e1, e2);
+				System.out.println(dc.toString());
+				:}
+	| APERTURADESCR ident:e1 CIERREDESCR{:
+				descrClass dc = new descrClass(e1);
+				System.out.println(dc.toString());
+				:}
+	| error{::}
+	;
+ident ::= APERTURAIDENT IDENT:e1 CIERREIDENT{:
+			RESULT = e1;:};
+date ::= APERTURADATE DATE:e1 CIERREDATE{:
+			RESULT = e1;:};
+
+
+/*ALMACENAMIENTO*/
+storage ::= APERTURASTORAGE registerList groupList CIERRESTORAGE{::}
+	| APERTURASTORAGE registerList CIERRESTORAGE{::}
+	| error{::}
+	;
+
+//Para register
+registerList ::= registerList register{::}
+	| register {::}
+	;
+register ::= APERTURAREGISTER name:e1 use:e2 bitSize:e3 CIERREREGISTER{:
+					storeClass st = new storeClass(e1, e2, e3);
+					st.setRegister();
+					System.out.println(st.toString());
+					RESULT = st;
+					:}
+	| APERTURAREGISTER name:e1 use:e2 bitSize:e3 regBitCode:e4 CIERREREGISTER{:
+					storeClass st = new storeClass(e1, e2, e3, e4);
+					st.setRegister();
+					System.out.println(st.toString());
+					RESULT = st;
+					:}
+	;
+name ::= APERTURANAME NAME:e1 CIERRENAME{:
+			RESULT = e1;:};
+use ::= APERTURAUSE useList:e1 CIERREUSE{:
+			RESULT = e1;
+			:};
+useList ::= USE:e1 {:
+			Stack t = new Stack();
+			t.push(e1);
+			RESULT = t;
+			:}
+	| useList:e1 COMA USE:e2 {:
+			e1.push(e2);
+			RESULT = e1;
+			:}
+	;
+bitSize ::= APERTURABITSIZE BITSIZE:e1 CIERREBITSIZE{:
+				RESULT = e1;:};
+regBitCode ::= APERTURAREGBITCODE REGBITCODE:e1 CIERREREGBITCODE{:
+					RESULT = e1;:};
+
+//Para group
+groupList ::= groupList group{::}
+	| group{::}
+	;
+group ::= APERTURAGROUP registers:e4 name:e1 use:e3 bitSize:e2 CIERREGROUP{:
+						storeClass st = new storeClass(e1, e2, e3, e4);
+						st.setGroup();
+						System.out.println(st.toString());
+						RESULT = st;
+						:}
+	|  APERTURAGROUP registers:e5 name:e1 use:e4 bitSize:e2 regBitCode:e3 CIERREGROUP{:
+				storeClass st = new storeClass(e1, e2, e3, e4, e5);
+				st.setGroup();
+				System.out.println(st.toString());
+				RESULT = st;
+				:}
+	;
+registers ::= APERTURAREGISTERS nameList:e1 CIERREREGISTERS{:
+				RESULT = e1;:};
+nameList ::= nameList:e1 COMA NAME:e2 {:e1.push(e2);
+										RESULT = e1;:}
+	| NAME:e1{: 
+			Stack t = new Stack();
+			t.push(e1);
+			RESULT = t;:}
+	;
+
+/*LENGUAJE ENSAMBLADOR*/
+insns ::= APERTURAINSNS insList CIERREINSNS{::}
+	| error{::}
+	;
+insList ::= insList ins {::}
+	| ins {::}
+	;
+ins ::= APERTURAINS opcode:e1 in out insBitCode:e2 behav:e3 CIERREINS {:
+			insClass insC = new insClass(e1, e2, e3);
+			RESULT = insC;
+			System.out.println(insC.toString());
+			:}
+	| APERTURAINS opcode:e1 out insBitCode:e2 behav:e3 CIERREINS {:
+			insClass insC = new insClass(e1, e2, e3);
+			RESULT = insC;
+			System.out.println(insC.toString());
+			:}
+	| APERTURAINS opcode:e1 in insBitCode:e2 behav:e3 CIERREINS {:
+			insClass insC = new insClass(e1, e2, e3);
+			RESULT = insC;
+			System.out.println(insC.toString());
+			:}
+	| APERTURAINS opcode:e1 insBitCode:e2 behav:e3 CIERREINS{:
+			insClass insC = new insClass(e1, e2, e3);
+			RESULT = insC;
+			System.out.println(insC.toString());
+			:}
+	;
+opcode ::= APERTURAOPCODE CODIGOOPERACION:e1 CIERREOPCODE{:
+				RESULT = e1;:};
+in ::= APERTURAIN inList CIERREIN {::};
+inList ::= operando {::}
+	| operando COMA inList{::}
+	;
+operando ::= ABRECORCHETE operandoList CIERRACORCHETE{::};
+operandoList ::= NOMBREOPERANDOIN{::}
+	| DATAMEM{::}
+	| NOMBREOPERANDOIN COMA operandoList{::}
+	| DATAMEM COMA operandoList{::}
+	;
+out ::= APERTURAOUT ABRECORCHETE NOMBREOPERANDOOUT CIERRACORCHETE CIERREOUT{::};
+insBitCode ::= APERTURAINSBITCODE insBitCodeList:e1 CIERREINSBITCODE {:
+				RESULT = e1;:};
+insBitCodeList ::= insBitCodeList:e1 COMA INSBITCODE:e2{:
+						e1.push(e2);
+						RESULT = e1;:}
+	| INSBITCODE:e1{:
+		Stack t = new Stack();
+		t.push(e1);
+		RESULT = t;:} 
+	;
+behav ::= APERTURABEHAV behavList:e1 CIERREBEHAV{:
+			RESULT = e1;:};
+behavList ::= BEHAV:e1 COMA behavList:e2{:
+				e2.push(e1);
+				RESULT=e2;:}
+	| BEHAV:e1 {: 
+		Stack t = new Stack();
+		t.push(e1);
+		RESULT = t;:}
+	;
